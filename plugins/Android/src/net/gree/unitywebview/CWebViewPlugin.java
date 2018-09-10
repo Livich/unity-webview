@@ -37,6 +37,7 @@ import android.view.View;
 import android.view.ViewGroup.LayoutParams;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -175,11 +176,19 @@ public class CWebViewPlugin {
                     canGoForward = webView.canGoForward();
                     mWebViewPlugin.call("CallOnError", errorCode + "\t" + description + "\t" + failingUrl);
                 }
+                
+                @Override
+                public void onReceivedHttpError(WebView view, WebResourceRequest request, WebResourceResponse errorResponse) {
+                	canGoBack = webView.canGoBack();
+                    canGoForward = webView.canGoForward();
+                    mWebViewPlugin.call("CallOnHttpError", Integer.toString(errorResponse.getStatusCode()));
+                }
 
                 @Override
                 public void onPageStarted(WebView view, String url, Bitmap favicon) {
                     canGoBack = webView.canGoBack();
                     canGoForward = webView.canGoForward();
+                    mWebViewPlugin.call("CallOnStarted", url);
                 }
 
                 @Override
@@ -266,6 +275,7 @@ public class CWebViewPlugin {
                 // Log.i("CWebViewPlugin", "Build.VERSION.SDK_INT = " + Build.VERSION.SDK_INT);
                 webSettings.setAllowUniversalAccessFromFileURLs(true);
             }
+            webSettings.setMediaPlaybackRequiresUserGesture(false);
             webSettings.setDatabaseEnabled(true);
             webSettings.setDomStorageEnabled(true);
 			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
