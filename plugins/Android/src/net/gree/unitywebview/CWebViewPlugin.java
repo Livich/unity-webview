@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2011 Keijiro Takahashi
  * Copyright (C) 2012 GREE, Inc.
+ * Copyright (C) 2018 OfferWall
  * 
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -21,6 +22,7 @@
 
 package net.gree.unitywebview;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -76,10 +78,29 @@ class CWebViewPluginInterface {
     }
 }
 
+class WebConfigInterface {
+    private CWebViewPlugin mPlugin;
+
+    public WebConfigInterface(CWebViewPlugin plugin) {
+        mPlugin = plugin;
+    }
+
+    @JavascriptInterface
+    public void setSupportZoom(final boolean param) {
+		final Activity a = UnityPlayer.currentActivity;
+        a.runOnUiThread(new Runnable() {public void run() {
+            if (mPlugin.IsInitialized()) {
+				mPlugin.getWebView().getSettings().setSupportZoom(param);
+			}
+        }});
+    }
+}
+
 public class CWebViewPlugin {
     private static FrameLayout layout = null;
     private WebView mWebView;
     private CWebViewPluginInterface mWebViewPlugin;
+	private WebConfigInterface mWebConfig;
     private int progress;
     private boolean canGoBack;
     private boolean canGoForward;
@@ -93,6 +114,7 @@ public class CWebViewPlugin {
         return mWebView != null;
     }
 
+	@SuppressLint("NewApi")
     public void Init(final String gameObject, final boolean transparent, final String ua) {
         final CWebViewPlugin self = this;
         final Activity a = UnityPlayer.currentActivity;
@@ -143,6 +165,8 @@ public class CWebViewPlugin {
             });
 
             mWebViewPlugin = new CWebViewPluginInterface(self, gameObject);
+			mWebConfig = new WebConfigInterface(self);
+			
             webView.setWebViewClient(new WebViewClient() {
                 @Override
                 public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
@@ -160,6 +184,7 @@ public class CWebViewPlugin {
 
                 @Override
                 public void onPageFinished(WebView view, String url) {
+					CookieSyncManager.getInstance().sync();
                     canGoBack = webView.canGoBack();
                     canGoForward = webView.canGoForward();
                     mWebViewPlugin.call("CallOnLoaded", url);
@@ -223,6 +248,7 @@ public class CWebViewPlugin {
                 }
             });
             webView.addJavascriptInterface(mWebViewPlugin , "Unity");
+			webView.addJavascriptInterface(mWebConfig , "Config");
 
             WebSettings webSettings = webView.getSettings();
             if (ua != null && ua.length() > 0) {
@@ -235,14 +261,19 @@ public class CWebViewPlugin {
             webSettings.setLoadWithOverviewMode(true);
             webSettings.setUseWideViewPort(true);
             webSettings.setJavaScriptEnabled(true);
+			webSettings.setAllowFileAccessFromFileURLs(true);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
                 // Log.i("CWebViewPlugin", "Build.VERSION.SDK_INT = " + Build.VERSION.SDK_INT);
                 webSettings.setAllowUniversalAccessFromFileURLs(true);
             }
             webSettings.setDatabaseEnabled(true);
             webSettings.setDomStorageEnabled(true);
+			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+				webSettings.setMixedContentMode(0);//WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+			}
             String databasePath = webView.getContext().getDir("databases", Context.MODE_PRIVATE).getPath();
             webSettings.setDatabasePath(databasePath);
+			CookieSyncManager.getInstance().sync();
 
             if (transparent) {
                 webView.setBackgroundColor(0x00000000);
@@ -456,5 +487,9 @@ public class CWebViewPlugin {
            cookieSyncManager.sync();
         }
     }
+	
+	public WebView getWebView(){
+		return this.mWebView;
+	}
 
 }
