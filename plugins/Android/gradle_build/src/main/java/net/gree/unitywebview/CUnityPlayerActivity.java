@@ -2,6 +2,7 @@ package net.gree.unitywebview;
 
 import com.unity3d.player.*;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
@@ -10,12 +11,15 @@ import android.util.Log;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 
+import im.delight.android.webview.AdvancedWebView;
+
 public class CUnityPlayerActivity
     extends UnityPlayerActivity
 {
     public static ValueCallback uploadMsg;
     public static final int FILECHOOSER_RESULTCODE = 100;
     public static final int REQUEST_SELECT_FILE = 101;
+    private WVListener wvListener;
 
     @Override
     public void onCreate(Bundle bundle) {
@@ -27,39 +31,40 @@ public class CUnityPlayerActivity
         mUnityPlayer.requestFocus();
     }
 
+    @SuppressLint("NewApi")
+    @Override
+    public void onResume() {
+        super.onResume();
+        if(wvListener != null)
+            wvListener.onResume();
+    }
+
+    @SuppressLint("NewApi")
+    @Override
+    public void onPause() {
+        if(wvListener != null)
+            wvListener.onPause();
+        super.onPause();
+    }
+
+    @Override
+    public void onDestroy() {
+        if(wvListener != null)
+            wvListener.onDestroy();
+        super.onDestroy();
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        Log.d("unity-webview", "onActivityResult "+resultCode);
-
-        if (requestCode == REQUEST_SELECT_FILE) {
-            if (uploadMsg == null) return;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                Log.d("unity-webview", "calling onReceiveValue (1)");
-                uploadMsg.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data));
-            }
-            uploadMsg = null;
-        } else if (requestCode == FILECHOOSER_RESULTCODE) {
-            if (null == uploadMsg)
-                return;
-            // Use MainActivity.RESULT_OK if you're implementing WebView inside Fragment
-            // Use RESULT_OK only if you're implementing WebView inside an Activity
-            Uri result = data == null || resultCode != CUnityPlayerActivity.RESULT_OK ? null : data.getData();
-            Log.d("unity-webview", "calling onReceiveValue: "+result.toString());
-            uploadMsg.onReceiveValue(result);
-            uploadMsg = null;
-        }
+		Log.w("unity-weview","onActivityResult");
+		if(wvListener != null)
+            wvListener.onActivityResult(requestCode, resultCode, data);
+        super.onActivityResult(requestCode, resultCode, data);
     }
 
 
-
-
-
-
-
-
-
-
-
-
-
+    public void setCustomListeners(WVListener l) {
+		Log.w("unity-weview","setCustomListeners");
+        wvListener = l;
+    }
 }

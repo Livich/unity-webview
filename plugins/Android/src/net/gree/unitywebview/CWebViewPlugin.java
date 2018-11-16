@@ -55,6 +55,8 @@ import java.util.List;
 
 import com.unity3d.player.UnityPlayer;
 
+import im.delight.android.webview.AdvancedWebView;
+
 class CWebViewPluginInterface {
     private CWebViewPlugin mPlugin;
     private String mGameObject;
@@ -117,14 +119,14 @@ public class CWebViewPlugin {
 	@SuppressLint("NewApi")
     public void Init(final String gameObject, final boolean transparent, final String ua) {
         final CWebViewPlugin self = this;
-        final Activity a = UnityPlayer.currentActivity;
+        final CUnityPlayerActivity a = (CUnityPlayerActivity) UnityPlayer.currentActivity;
         a.runOnUiThread(new Runnable() {public void run() {
             if (mWebView != null) {
                 return;
             }
             mCustomHeaders = new Hashtable<String, String>();
             
-            final WebView webView = new WebView(a);
+            final AdvancedWebView webView = new AdvancedWebView(a);
             webView.setVisibility(View.GONE);
             webView.setFocusable(true);
             webView.setFocusableInTouchMode(true);
@@ -139,7 +141,29 @@ public class CWebViewPlugin {
 
             mWebViewPlugin = new CWebViewPluginInterface(self, gameObject);
 			mWebConfig = new WebConfigInterface(self);
-			
+
+			a.setCustomListeners(new WVListener() {
+                @Override
+                public void onActivityResult(int requestCode, int resultCode, Intent intent) {
+                    webView.onActivityResult(requestCode, resultCode, intent);
+                }
+
+                @Override
+                public void onPause() {
+                    webView.onPause();
+                }
+
+                @Override
+                public void onResume() {
+                    webView.onResume();
+                }
+
+                @Override
+                public void onDestroy() {
+                    webView.onDestroy();
+                }
+            });
+
             webView.setWebViewClient(new WebViewClient() {
                 @Override
                 public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {

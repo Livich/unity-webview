@@ -7,3 +7,8 @@ Temp
 **/*.xcodeproj/*
 !**/*.xcodeproj/project.pbxproj
 !**/*.xcworkspace/contents.xcworkspacedata
+plugins/Android/.gradle
+plugins/Android/.idea
+plugins/Android/build
+plugins/Android/gradle_build
+plugins/Android/libs
